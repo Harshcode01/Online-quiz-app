@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upgraded Quiz App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body {
+      background: linear-gradient(to right, #6dd5fa, #2980b9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .quiz-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    }
+    h2 { font-size: 24px; margin-bottom: 15px; color: #333; }
+    .question-count, .timer, .score, .result-message {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #444;
+    }
+    .option {
+      background-color: #f1f1f1;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+      border: 2px solid transparent;
+    }
+    .option:hover {
+      background-color: #e0e0e0;
+    }
+    .option.correct { background-color: #c8f7c5; border-color: #2ecc71; }
+    .option.incorrect { background-color: #f7c5c5; border-color: #e74c3c; }
+    button {
+      background-color: #4a69bd;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+      width: 100%;
+      font-size: 16px;
+    }
+    button:hover { background-color: #3b5998; }
+    .review {
+      margin-top: 20px;
+    }
+    .review-item {
+      border-top: 1px solid #ccc;
+      padding: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <div class="question-count" id="questionCount"></div>
+    <div class="timer" id="timerBox"></div>
+    <h2 id="question">Loading...</h2>
+    <div id="options"></div>
+    <button onclick="nextQuestion()">Next</button>
+    <div class="score" id="scoreBox"></div>
+    <div class="result-message" id="resultMessage"></div>
+    <div class="review" id="reviewBox"></div>
+    <button onclick="restartQuiz()" id="restartBtn" style="display:none;">Restart Quiz</button>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        question: "What does HTML stand for?",
+        options: ["Hyper Text Markup Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language", "Hyperlink Text Method Language"],
+        answer: 0,
+      },
+      {
+        question: "Which language is used for styling web pages?",
+        options: ["HTML", "JQuery", "CSS", "XML"],
+        answer: 2,
+      },
+      {
+        question: "Which is not a JavaScript framework?",
+        options: ["React", "Angular", "Vue", "C++"],
+        answer: 3,
+      },
+      {
+        question: "Which keyword is used to declare a variable in JavaScript?",
+        options: ["var", "int", "let", "Both var and let"],
+        answer: 3,
+      }
+    ];
+
+    let currentIndex = 0;
+    let score = 0;
+    let selected = false;
+    let selectedAnswers = [];
+    let timer;
+    let timeLeft = 15;
+
+    const questionCount = document.getElementById("questionCount");
+    const questionBox = document.getElementById("question");
+    const optionsBox = document.getElementById("options");
+    const scoreBox = document.getElementById("scoreBox");
+    const timerBox = document.getElementById("timerBox");
+    const resultMessage = document.getElementById("resultMessage");
+    const reviewBox = document.getElementById("reviewBox");
+    const restartBtn = document.getElementById("restartBtn");
+
+    function loadQuestion() {
+      clearInterval(timer);
+      timeLeft = 15;
+      startTimer();
+
+      selected = false;
+      scoreBox.textContent = "";
+      resultMessage.textContent = "";
+      const current = questions[currentIndex];
+      questionCount.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
+      questionBox.textContent = current.question;
+      optionsBox.innerHTML = "";
+
+      current.options.forEach((option, i) => {
+        const div = document.createElement("div");
+        div.classList.add("option");
+        div.textContent = option;
+        div.onclick = () => checkAnswer(i, div);
+        optionsBox.appendChild(div);
+      });
+    }
+
+    function checkAnswer(index, div) {
+      if (selected) return;
+      selected = true;
+      clearInterval(timer);
+
+      const correct = questions[currentIndex].answer;
+      const allOptions = document.querySelectorAll(".option");
+      allOptions.forEach((opt, i) => {
+        opt.classList.add(i === correct ? "correct" : "incorrect");
+        opt.style.pointerEvents = "none";
+      });
+
+      if (index === correct) {
+        score++;
+        scoreBox.textContent = "✅ Correct!";
+      } else {
+        scoreBox.textContent = "❌ Wrong! Correct: " + questions[currentIndex].options[correct];
+      }
+
+      selectedAnswers.push({
+        q: questions[currentIndex].question,
+        selected: questions[currentIndex].options[index],
+        correct: questions[currentIndex].options[correct]
+      });
+    }
+
+    function nextQuestion() {
+      if (!selected) {
+        scoreBox.textContent = "⚠️ Please select an answer.";
+        return;
+      }
+
+      currentIndex++;
+      if (currentIndex < questions.length) {
+        loadQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function startTimer() {
+      timerBox.textContent = `⏱️ Time Left: ${timeLeft}s`;
+      timer = setInterval(() => {
+        timeLeft--;
+        timerBox.textContent = `⏱️ Time Left: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          autoSubmit();
+        }
+      }, 1000);
+    }
+
+    function autoSubmit() {
+      const correct = questions[currentIndex].answer;
+      const allOptions = document.querySelectorAll(".option");
+      allOptions.forEach((opt, i) => {
+        opt.classList.add(i === correct ? "correct" : "incorrect");
+        opt.style.pointerEvents = "none";
+      });
+      scoreBox.textContent = "⏳ Time's up! Correct: " + questions[currentIndex].options[correct];
+
+      selected = true;
+      selectedAnswers.push({
+        q: questions[currentIndex].question,
+        selected: "⏱️ Not Answered",
+        correct: questions[currentIndex].options[correct]
+      });
+    }
+
+    function showResult() {
+      questionBox.textContent = "🎉 Quiz Completed!";
+      optionsBox.innerHTML = "";
+      timerBox.textContent = "";
+      questionCount.textContent = "";
+      document.querySelector("button").style.display = "none";
+
+      resultMessage.innerHTML = score === questions.length
+        ? "🌟 Excellent!"
+        : score >= questions.length / 2
+        ? "👍 Good job!"
+        : "😕 Try Again!";
+
+      scoreBox.innerHTML = `Your Score: <strong>${score}/${questions.length}</strong>`;
+
+      let reviewHTML = "<h3>Review:</h3>";
+      selectedAnswers.forEach(item => {
+        reviewHTML += `
+          <div class="review-item">
+            <strong>Q:</strong> ${item.q}<br/>
+            <strong>Your Answer:</strong> ${item.selected}<br/>
+            <strong>Correct:</strong> ${item.correct}
+          </div>`;
+      });
+      reviewBox.innerHTML = reviewHTML;
+      restartBtn.style.display = "block";
+    }
+
+    function restartQuiz() {
+      currentIndex = 0;
+      score = 0;
+      selectedAnswers = [];
+      document.querySelector("button").style.display = "block";
+      restartBtn.style.display = "none";
+      reviewBox.innerHTML = "";
+      loadQuestion();
+    }
+
+    loadQuestion();
+  </script>
+</body>
+</html>
