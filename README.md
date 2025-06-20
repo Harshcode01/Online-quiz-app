@@ -17,10 +17,3 @@ An interactive and responsive web-based quiz application developed using HTML, C
 
 ---
 
-## 🚀 Getting Started
-
-### 📂 Clone the repository
-
-```bash
-git clone https://github.com/your-username/online-quiz-app.git
-cd online-quiz-app
